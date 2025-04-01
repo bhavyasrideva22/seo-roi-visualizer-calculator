@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatCurrency } from "@/utils/calculatorUtils";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import html2canvas from "html2canvas";
+// Import jspdf-autotable correctly
+import 'jspdf-autotable';
 
 interface DownloadPDFProps {
   formData: {
@@ -33,6 +33,7 @@ const DownloadPDF: React.FC<DownloadPDFProps> = ({ formData, results }) => {
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
+      // Create a new PDF document
       const pdf = new jsPDF('portrait', 'pt', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -108,8 +109,10 @@ const DownloadPDF: React.FC<DownloadPDFProps> = ({ formData, results }) => {
         ['Timeframe', `${formData.timeframe} months`]
       ];
       
-      autoTable(pdf, {
-        startY: y + 40,
+      // Use the autotable method directly from the pdf instance
+      const inputTableEndY = y + 40;
+      pdf.autoTable({
+        startY: inputTableEndY,
         head: [inputData[0]],
         body: inputData.slice(1),
         theme: 'striped',
@@ -122,15 +125,17 @@ const DownloadPDF: React.FC<DownloadPDFProps> = ({ formData, results }) => {
         styles: { fontSize: 10 }
       });
       
-      // Results
-      y = pdf.lastAutoTable?.finalY || 400;
+      // Get the final Y position after the table is drawn
+      const resultsStartY = pdf.previousAutoTable.finalY + 30;
+      
+      // Results section
       pdf.setFontSize(18);
       pdf.setTextColor(36, 94, 79);
-      pdf.text('Projected Results', 40, y + 30);
+      pdf.text('Projected Results', 40, resultsStartY);
       
       pdf.setDrawColor(36, 94, 79);
       pdf.setLineWidth(1);
-      pdf.line(40, y + 40, 200, y + 40);
+      pdf.line(40, resultsStartY + 10, 200, resultsStartY + 10);
       
       const resultsData = [
         ['Metric', 'Value'],
@@ -140,8 +145,8 @@ const DownloadPDF: React.FC<DownloadPDFProps> = ({ formData, results }) => {
         ['Return on Investment', `${results.roi.toFixed(0)}%`]
       ];
       
-      autoTable(pdf, {
-        startY: y + 50,
+      pdf.autoTable({
+        startY: resultsStartY + 20,
         head: [resultsData[0]],
         body: resultsData.slice(1),
         theme: 'striped',
@@ -155,13 +160,14 @@ const DownloadPDF: React.FC<DownloadPDFProps> = ({ formData, results }) => {
       });
       
       // Monthly projections table
-      y = pdf.lastAutoTable?.finalY || 550;
+      const projectionsStartY = pdf.previousAutoTable.finalY + 30;
       
-      if (y > pageHeight - 150) {
+      // Check if we need a new page
+      if (projectionsStartY > pageHeight - 150) {
         pdf.addPage();
-        y = 40;
+        y = 40; // Reset y position on new page
       } else {
-        y += 30;
+        y = projectionsStartY;
       }
       
       pdf.setFontSize(18);
@@ -184,7 +190,7 @@ const DownloadPDF: React.FC<DownloadPDFProps> = ({ formData, results }) => {
         ]);
       });
       
-      autoTable(pdf, {
+      pdf.autoTable({
         startY: y + 20,
         head: [projectionTableData[0]],
         body: projectionTableData.slice(1),
